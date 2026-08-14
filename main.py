@@ -17,10 +17,11 @@ from datetime import date
 
 from dotenv import load_dotenv
 
-from notion_client_wrapper import fetch_tasks, resolve_relation_contexts
-from transform import shape_tasks, PROF_PROPS, COLLEGE_PROPS
 from format_digest import build_digest_html
+from morning_api import get_morning_briefing
+from notion_client_wrapper import fetch_tasks, resolve_relation_contexts
 from send_email import send_html_email
+from transform import COLLEGE_PROPS, PROF_PROPS, shape_tasks
 
 # Load variables from a local .env file into the environment. This lets
 # us keep secrets out of the code entirely -- see .env.example.
@@ -90,7 +91,9 @@ def main():
     print(f"Found {len(all_tasks)} relevant tasks (due soon or overdue).")
 
     # --- 3. FORMAT: build the HTML digest ---
-    html_body = build_digest_html(all_tasks)
+    print("Fetching morning API data...")
+    briefing = get_morning_briefing()
+    html_body = build_digest_html(all_tasks, briefing)
 
     # --- 4. SEND: email it ---
     subject = f"Daily Digest — {date.today().strftime('%m/%d')}"

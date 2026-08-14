@@ -1,11 +1,11 @@
 """
 format_digest.py
 ------------------
-Responsibility: turn a list of clean task dicts (from transform.py) into
-an HTML string ready to email.
+Responsibility: turn a list of clean task dicts into an HTML string ready to email.
 """
 
 from datetime import date
+import re
 
 SOURCE_LABELS = {
     "Professional": "Professional Hub",
@@ -14,16 +14,47 @@ SOURCE_LABELS = {
 SOURCE_ORDER = ["Professional", "College"]
 
 # Dark Academia Color Palette
-BG_COLOR = "#FDFBF7"  # Soft parchment
-TEXT_MAIN = "#2C2C2C"  # Dark charcoal
-TEXT_MUTED = "#555555"  # Muted grey for metadata
-ACCENT_DARK_RED = "#722F37"  # Deep burgundy / dark academia red
-BORDER_COLOR = "#E6DCD3"  # Subtle line color
+BG_COLOR = "#FDFBF7"
+TEXT_MAIN = "#2C2C2C"
+TEXT_MUTED = "#555555"
+ACCENT_DARK_RED = "#722F37"
+BORDER_COLOR = "#E6DCD3"
+
+
+def _parse_minutes(time_str: str) -> int:
+    """Converts strings like '<30min', '1-2hrs', or '1 hr' into an integer of minutes."""
+    if not time_str:
+        return 0
+    t = time_str.lower()
+    nums = re.findall(r"\d+", t)
+    if not nums:
+        return 0
+
+    # If it's a range (e.g. 1-2), take the average
+    if "-" in t and len(nums) >= 2:
+        val = (float(nums[0]) + float(nums[1])) / 2
+    else:
+        val = float(nums[0])
+
+    # Convert hours to minutes
+    if "hr" in t or "hour" in t:
+        return int(val * 60)
+    return int(val)
+
+
+def _format_minutes(mins: int) -> str:
+    """Formats raw minutes back into a clean 'X hr Y min' string."""
+    h = mins // 60
+    m = mins % 60
+    if h > 0 and m > 0:
+        return f"{h} hr {m} min"
+    elif h > 0:
+        return f"{h} hr"
+    return f"{m} min"
 
 
 def _render_task_row(task: dict, today: date) -> str:
     due_label = "Today" if task["due"] == today else task["due"].strftime("%a %m/%d")
-
     meta_pieces = [due_label]
     if task["task_type"]:
         meta_pieces.append(task["task_type"])
@@ -66,8 +97,16 @@ def _render_source_section(source_tasks: list[dict], today: date) -> list[str]:
         parts.append("</ul>")
 
     if today_tasks:
+        # Calculate daily workload
+        total_mins = sum(
+            _parse_minutes(t.get("estimated_time", "")) for t in today_tasks
+        )
+        workload_html = ""
+        if total_mins > 0:
+            workload_html = f'<span style="color: {TEXT_MUTED}; font-size: 13px; font-weight: normal; font-style: italic; margin-left: 10px;">(~{_format_minutes(total_mins)} total)</span>'
+
         parts.append(
-            f'<h4 style="font-family: Georgia, serif; color: {ACCENT_DARK_RED}; margin-bottom: 6px; margin-top: 20px; font-size: 16px; border-bottom: 1px solid {BORDER_COLOR}; padding-bottom: 4px;">Today</h4>'
+            f'<h4 style="font-family: Georgia, serif; color: {ACCENT_DARK_RED}; margin-bottom: 6px; margin-top: 20px; font-size: 16px; border-bottom: 1px solid {BORDER_COLOR}; padding-bottom: 4px;">Today{workload_html}</h4>'
         )
         by_context_today: dict[str, list[dict]] = {}
         for task in today_tasks:
@@ -100,8 +139,9 @@ def _render_source_section(source_tasks: list[dict], today: date) -> list[str]:
     return parts
 
 
-def build_digest_html(all_tasks: list[dict]) -> str:
+def build_digest_html(all_tasks: list[dict], briefing: dict = None) -> str:
     today = date.today()
+    briefing = briefing or {}
 
     by_source: dict[str, list[dict]] = {}
     for task in all_tasks:
@@ -111,6 +151,21 @@ def build_digest_html(all_tasks: list[dict]) -> str:
         f'<div style="background-color: {BG_COLOR}; padding: 30px; border-radius: 8px; max-width: 600px; margin: 0 auto; border: 1px solid {BORDER_COLOR};">'
         f'<h2 style="font-family: Georgia, serif; color: {ACCENT_DARK_RED}; font-weight: normal; border-bottom: 2px solid {ACCENT_DARK_RED}; padding-bottom: 10px; margin-top: 0; font-size: 24px;">Daily Digest <span style="color: {TEXT_MUTED}; font-size: 16px; float: right; margin-top: 6px;">{today.strftime("%A, %B %d")}</span></h2>'
     ]
+
+    # Inject the Morning Briefing (Weather & Quote)
+    if briefing.get("weather") or briefing.get("quote"):
+        html_parts.append(
+            f'<div style="margin-top: 20px; margin-bottom: 20px; padding: 15px; background-color: #F8F5F0; border-radius: 6px; border: 1px solid {BORDER_COLOR};">'
+        )
+        if briefing.get("weather"):
+            html_parts.append(
+                f'<div style="font-family: Georgia, serif; font-size: 14px; color: {TEXT_MAIN}; margin-bottom: 10px;"><strong>New York:</strong> {briefing["weather"]}</div>'
+            )
+        if briefing.get("quote"):
+            html_parts.append(
+                f'<div style="font-family: Georgia, serif; font-size: 14px; color: {TEXT_MUTED}; font-style: italic; line-height: 1.5;">"{briefing["quote"]}"<br><span style="color: {TEXT_MAIN};">&mdash; {briefing["author"]}</span></div>'
+            )
+        html_parts.append("</div>")
 
     if not all_tasks:
         html_parts.append(
