@@ -17,8 +17,8 @@ from datetime import date
 
 from dotenv import load_dotenv
 
-from notion_client_wrapper import fetch_tasks
-from transform import shape_tasks
+from notion_client_wrapper import fetch_tasks, resolve_relation_contexts
+from transform import shape_tasks, PROF_PROPS, COLLEGE_PROPS
 from format_digest import build_digest_html
 from send_email import send_html_email
 
@@ -55,7 +55,7 @@ def load_config() -> dict:
         "email_app_password": os.environ["EMAIL_APP_PASSWORD"],
         "smtp_server": os.environ.get("SMTP_SERVER", "smtp.gmail.com"),
         "smtp_port": int(os.environ.get("SMTP_PORT", "587")),
-        "lookahead_days": int(os.environ.get("LOOKAHEAD_DAYS", "2")),
+        "lookahead_days": int(os.environ.get("LOOKAHEAD_DAYS", "7")),
     }
 
 
@@ -74,12 +74,17 @@ def main():
         prof_raw,
         source_label="Professional",
         lookahead_days=config["lookahead_days"],
+        props=PROF_PROPS,
     )
     college_tasks = shape_tasks(
         college_raw,
         source_label="College",
         lookahead_days=config["lookahead_days"],
+        props=COLLEGE_PROPS,
     )
+
+    print("Resolving Course relations...")
+    resolve_relation_contexts(college_tasks, config["notion_token"])
 
     all_tasks = prof_tasks + college_tasks
     print(f"Found {len(all_tasks)} relevant tasks (due soon or overdue).")
