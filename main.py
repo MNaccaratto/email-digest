@@ -110,5 +110,11 @@ def main():
     print(f"Digest emailed to {config['email_to']}.")
 
 
+def lambda_handler(event, context):
+    """AWS Lambda entry point."""
+    main()
+    return {"statusCode": 200, "body": "Digest sent successfully!"}
+
+
 if __name__ == "__main__":
     main()
