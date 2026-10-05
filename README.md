@@ -25,4 +25,4 @@ The codebase is strictly modular, adhering to the principle of single responsibi
 *   **`send_email.py`**: A generic, reusable SMTP wrapper for transmitting the HTML payload via a secure Gmail connection.
 
 ---
-Created by Lauren Naccaratto, 2026.
+Created by MNaccaratto, 2026.

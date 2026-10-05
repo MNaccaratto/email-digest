@@ -159,7 +159,7 @@ def build_digest_html(all_tasks: list[dict], briefing: dict = None) -> str:
         )
         if briefing.get("weather"):
             html_parts.append(
-                f'<div style="font-family: Georgia, serif; font-size: 14px; color: {TEXT_MAIN}; margin-bottom: 10px;"><strong>New York:</strong> {briefing["weather"]}</div>'
+                f'<div style="font-family: Georgia, serif; font-size: 14px; color: {TEXT_MAIN}; margin-bottom: 10px;"><strong>Weather:</strong> {briefing["weather"]}</div>'
             )
         if briefing.get("quote"):
             html_parts.append(

@@ -23,7 +23,7 @@ from datetime import date, datetime, timedelta
 PROF_PROPS = {
     "due_date": "Due Date",
     "status": "Status",
-    "context": "Organization",  # e.g. "COMS", "TA"
+    "context": "Organization",  # e.g. "Work", "Side Project"
     "task_type": "Type",
     "estimated_time": "Estimated Time",
     "notes_links": "Link",  # a real URL property here
